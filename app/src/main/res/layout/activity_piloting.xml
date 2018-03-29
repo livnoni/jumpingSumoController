@@ -1,0 +1,142 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/piloting_view"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="livnoni.jumpingsumocontroller.PilotingActivity">
+
+    <!--<ImageView-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent"-->
+    <!--android:scaleType="fitXY"-->
+    <!--android:id="@+id/imageView" />-->
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Battery: "
+        android:id="@+id/textView"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:textColor="#ff0000" />
+
+
+    <ProgressBar
+        android:id="@+id/progressBar1"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/toggleButton1"
+        android:layout_marginTop="12dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp" />
+
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/progressBar1"
+        android:layout_marginTop="85dp"
+        android:layout_toEndOf="@+id/jumLongBt"
+        android:layout_toRightOf="@+id/jumLongBt" />
+
+    <ToggleButton
+        android:id="@+id/toggleButton1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="26dp"
+        android:text="ToggleButton" />
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="XXX%"
+        android:id="@+id/batteryLabel"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/textView"
+        android:layout_toEndOf="@+id/textView"
+        android:textColor="#ff0000" />
+
+    <Button
+        android:layout_width="75dp"
+        android:layout_height="wrap_content"
+        android:text="right"
+        android:id="@+id/turnRightBt"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="false"/>
+
+    <Button
+        android:id="@+id/turnLeftBt"
+        android:layout_width="75dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/turnRightBt"
+        android:layout_toStartOf="@+id/turnRightBt"
+        android:text="left" />
+
+
+    <TextView
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Turn"
+        android:id="@+id/textTurn"
+        android:width="50dp"
+        android:textAlignment="center"
+        android:gravity="center_horizontal"
+        android:layout_centerVertical="true"
+        android:layout_toLeftOf="@+id/turnRightBt"
+        android:layout_alignBaseline="@id/turnRightBt"/>
+
+
+    <Button
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:text="back"
+        android:id="@+id/backBt"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentBottom="true"
+        android:width="100dp"/>
+
+    <Button
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:text="forward"
+        android:id="@+id/forwardBt"
+        android:layout_above="@+id/backBt"
+        android:layout_alignParentLeft="true"
+        android:width="100dp"/>
+
+    <Button
+        android:id="@+id/jumHightBt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/forwardBt"
+        android:layout_alignBottom="@+id/forwardBt"
+        android:layout_toEndOf="@+id/forwardBt"
+        android:layout_toRightOf="@+id/forwardBt"
+        android:text="Jum-Hight" />
+
+    <Button
+        android:id="@+id/jumLongBt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toEndOf="@+id/backBt"
+        android:layout_toRightOf="@+id/backBt"
+        android:text="Jum-Long" />
+
+</RelativeLayout>
+
+
