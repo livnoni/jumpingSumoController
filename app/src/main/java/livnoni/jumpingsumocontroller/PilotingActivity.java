@@ -1,19 +1,27 @@
 package livnoni.jumpingsumocontroller;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
+import android.content.pm.PackageManager;
+import android.os.CountDownTimer;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.parrot.arsdk.arcommands.ARCOMMANDS_JUMPINGSUMO_ANIMATIONS_JUMP_TYPE_ENUM;
 import com.parrot.arsdk.arcontroller.ARCONTROLLER_DEVICE_STATE_ENUM;
@@ -33,11 +41,13 @@ import com.parrot.arsdk.ardiscovery.ARDiscoveryDeviceNetService;
 import com.parrot.arsdk.ardiscovery.ARDiscoveryDeviceService;
 import com.parrot.arsdk.ardiscovery.ARDiscoveryException;
 
-import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 
-public class PilotingActivity extends Activity implements ARDeviceControllerListener, ARDeviceControllerStreamListener {
+public class PilotingActivity extends Activity implements ARDeviceControllerListener, ARDeviceControllerStreamListener, RecognitionListener {
 
     private static String TAG = PilotingActivity.class.getSimpleName();
+    private static String SPEECH_COMMAND = "speechCommand";
+
     public static String EXTRA_DEVICE_SERVICE = "pilotingActivity.extra.device.service";
 
     public ARDeviceController deviceController;
@@ -59,6 +69,16 @@ public class PilotingActivity extends Activity implements ARDeviceControllerList
 
     private RelativeLayout view;
 //    private JpegView frameView;
+
+    private static final int REQUEST_RECORD_PERMISSION = 100;
+    private int maxLinesInput = 10;
+    private TextView returnedText;
+    private ToggleButton toggleButton;
+    private ProgressBar progressBar;
+    private SpeechRecognizer speech = null;
+    private Intent recognizerIntent;
+    private String LOG_TAG = "VoiceRecognitionActivity";
+    boolean listening = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,6 +120,34 @@ public class PilotingActivity extends Activity implements ARDeviceControllerList
                 e.printStackTrace();
             }
         }
+
+        returnedText = (TextView) findViewById(R.id.textView1);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar1);
+        toggleButton = (ToggleButton) findViewById(R.id.toggleButton1);
+
+
+        toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                if (isChecked) {
+                    listening = true;
+                    start();
+                    progressBar.setVisibility(View.VISIBLE);
+                    progressBar.setIndeterminate(true);
+                    ActivityCompat.requestPermissions
+                            (PilotingActivity.this,
+                                    new String[]{Manifest.permission.RECORD_AUDIO},
+                                    REQUEST_RECORD_PERMISSION);
+                } else {
+                    listening = false;
+                    progressBar.setIndeterminate(false);
+                    progressBar.setVisibility(View.INVISIBLE);
+                    turnOf();
+                }
+            }
+        });
 
     }
 
@@ -296,6 +344,304 @@ public class PilotingActivity extends Activity implements ARDeviceControllerList
         batteryLabel = (TextView) findViewById(R.id.batteryLabel);
     }
 
+    int speedLevel;
+    boolean isMovingForward = false;
+    boolean isMovingBackward = false;
+
+    public void analyzeTextCommander(String text){
+        if(text.contains("let go") || text.contains("let's go") || text.contains("lets go") ||text.contains("straight") || text.contains("forward") ||  text.contains("word") ){
+            Log.d(SPEECH_COMMAND, "moveRobotForward---->");
+            speedLevel = 30;
+            isMovingForward = true;
+            isMovingBackward = false;
+            moveRobotForward(speedLevel);
+        }
+        if(text.contains("back") || text.contains("beck")  ){
+            Log.d(SPEECH_COMMAND, "moveRobotBack---->");
+            speedLevel = 30;
+            isMovingForward = true;
+            isMovingBackward = false;
+            moveRobotBackward(speedLevel);
+        }
+        if(text.contains("fast")|| text.contains("fist") || text.contains("fest") || text.contains("5th") || text.contains("fit") || text.contains("fifth") || text.contains("fest") || text.contains("festival") || text.contains("chest") || text.contains("15") || text.contains("50") ){
+            if(isMovingForward){
+                speedLevel = speedLevel + 30;
+                moveRobotForward(speedLevel);
+            }
+            if(isMovingBackward){
+                speedLevel = speedLevel + 30;
+                moveRobotBackward(speedLevel);
+            }
+        }
+        if(text.contains("slow") || text.contains("owl") ){
+            if(isMovingForward){
+                speedLevel = speedLevel - 30;
+                moveRobotForward(speedLevel);
+            }
+            if(isMovingForward){
+                speedLevel = speedLevel - 30;
+                moveRobotBackward(speedLevel);
+            }
+        }
+        if(text.contains("stop") || text.contains("stuff") || text.contains("stuck")){
+            Log.d(SPEECH_COMMAND, "stopRobot---->");
+            isMovingForward = false;
+            isMovingBackward = false;
+            stopRobot();
+        }
+        if(text.contains("right") || text.contains("light") || text.contains("termite") || text.contains("price") || text.contains("quite") || text.contains("night") || text.contains("like") || text.contains("dynamite")){
+            Log.d(SPEECH_COMMAND, "moveRobotRight---->");
+            String [] words = text.split(" ");
+            int counter = 1;
+            for(int i=0;i<words.length; i++){
+                if(words[i].equals("right") || words[i].equals("light")){
+                    counter++;
+                }
+            }
+            moveRobot("right", counter);
+
+        }
+        if(text.contains("left") || text.contains("lift")){
+            Log.d(SPEECH_COMMAND, "moveRobotLeft---->");
+            String [] words = text.split(" ");
+            int counter = 1;
+            for(int i=0;i<words.length; i++){
+                if(words[i].equals("left") || text.contains("lift")){
+                    counter++;
+                }
+            }
+            moveRobot("left", counter);
+        }
+
+    }
+
+    public void moveRobotForward(int speed){
+        if (deviceController != null)
+        {
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDSpeed((byte) speed);
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDFlag((byte) 1);
+        }
+    }
+
+    public void moveRobotBackward(int speed){
+        if (deviceController != null)
+        {
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDSpeed((byte) -speed);
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDFlag((byte) 1);
+        }
+    }
+
+    public void stopRobot(){
+        if (deviceController != null)
+        {
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDSpeed((byte) 0);
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDFlag((byte) 0);
+
+        }
+    }
+
+
+
+    public void moveRobot(String direction, int counter){
+        if(direction == "right"){
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDTurn((byte) 10);
+        }
+        if(direction == "left"){
+            deviceController.getFeatureJumpingSumo().setPilotingPCMDTurn((byte) -10);
+        }
+        deviceController.getFeatureJumpingSumo().setPilotingPCMDFlag((byte) 1);
+
+
+        new CountDownTimer(500*counter, 500) {
+
+            public void onTick(long millisUntilFinished) {
+                //do nothing            }
+            }
+
+            public void onFinish() {
+                deviceController.getFeatureJumpingSumo().setPilotingPCMDTurn((byte) 0);
+            }
+        }.start();
+
+    }
+
+    public void start(){
+        progressBar.setVisibility(View.INVISIBLE);
+        speech = SpeechRecognizer.createSpeechRecognizer(this);
+        Log.i(LOG_TAG, "isRecognitionAvailable: " + SpeechRecognizer.isRecognitionAvailable(this));
+        speech.setRecognitionListener((RecognitionListener) this);
+        recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,
+                "en");
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, maxLinesInput);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,true);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 10);
+
+    }
+
+    public void turnOf(){
+        speech.stopListening();
+        speech.destroy();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_RECORD_PERMISSION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(PilotingActivity.this, "start talk...", Toast
+                            .LENGTH_SHORT).show();
+                    speech.startListening(recognizerIntent);
+                } else {
+                    Toast.makeText(PilotingActivity.this, "Permission Denied!", Toast
+                            .LENGTH_SHORT).show();
+                }
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+    }
+
+//    @Override
+//    protected void onStop() {
+//        super.onStop();
+////        if (speech != null) {
+////            speech.destroy();
+////            Log.i(LOG_TAG, "destroy");
+////        }
+//    }
+
+    @Override
+    public void onReadyForSpeech(Bundle bundle) {
+        Log.i(LOG_TAG, "onReadyForSpeech");
+
+    }
+
+    @Override
+    public void onBeginningOfSpeech() {
+        Log.i(LOG_TAG, "onBeginningOfSpeech");
+        progressBar.setIndeterminate(false);
+        progressBar.setMax(10);
+    }
+
+    @Override
+    public void onRmsChanged(float rmsdB) {
+//        Log.i(LOG_TAG, "onRmsChanged: " + rmsdB);
+        progressBar.setProgress((int) rmsdB);
+        if(!listening){
+            turnOf();
+        }
+    }
+
+    @Override
+    public void onBufferReceived(byte[] bytes) {
+        Log.i(LOG_TAG, "onBufferReceived: " + bytes);
+
+    }
+
+    @Override
+    public void onEndOfSpeech() {
+        Log.i(LOG_TAG, "onEndOfSpeech");
+    }
+
+    @Override
+    public void onError(int errorCode) {
+        String errorMessage = getErrorText(errorCode);
+        Log.d(LOG_TAG, "FAILED " + errorMessage);
+        returnedText.setText(errorMessage);
+        speech.startListening(recognizerIntent);
+
+    }
+
+    @Override
+    public void onResults(Bundle results) {
+        Log.i(LOG_TAG, "onResults");
+        ArrayList<String> matches = results
+                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        String text = "";
+        for (String result : matches)
+            text += result + "\n";
+        Log.i(LOG_TAG, "onResults="+text);
+
+        text = text.toLowerCase();
+
+        analyzeTextCommander(text);
+
+        returnedText.setText(text);
+        speech.startListening(recognizerIntent);
+
+    }
+
+    @Override
+    public void onPartialResults(Bundle bundle) {
+        Log.i(LOG_TAG, "onPartialResults");
+//        ArrayList<String> matches = bundle
+//                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+//        String text = "";
+//        for (String result : matches)
+//            text += result + "\n";
+//        Log.i(LOG_TAG, "onPartialResults="+text);
+
+        String[] results = bundle.getStringArray("com.google.android.voicesearch.UNSUPPORTED_PARTIAL_RESULTS");
+        Log.i(LOG_TAG, "onPartialResults="+results);
+
+    }
+
+    @Override
+    public void onEvent(int i, Bundle bundle) {
+        Log.i(LOG_TAG, "onEvent");
+
+    }
+
+    public String getErrorText(int errorCode) {
+        String message;
+        switch (errorCode) {
+            case SpeechRecognizer.ERROR_AUDIO:
+                message = "Audio recording error";
+                break;
+            case SpeechRecognizer.ERROR_CLIENT:
+                message = "Client side error";
+                break;
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                message = "Insufficient permissions";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK:
+                message = "Network error";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                message = "Network timeout";
+                break;
+            case SpeechRecognizer.ERROR_NO_MATCH:
+                message = "No match";
+                break;
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                message = "RecognitionService busy";
+                turnOf();
+                break;
+            case SpeechRecognizer.ERROR_SERVER:
+                message = "error from server";
+                break;
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                message = "No speech input";
+                break;
+            default:
+                message = "Didn't understand, please try again.";
+                break;
+        }
+        return message;
+    }
+
     @Override
     public void onStart()
     {
@@ -350,9 +696,14 @@ public class PilotingActivity extends Activity implements ARDeviceControllerList
     @Override
     protected void onStop()
     {
-        if (deviceController != null)
-        {
-            deviceController.stop();
+//        if (deviceController != null)
+//        {
+//            deviceController.stop();
+//        }
+
+        if (speech != null) {
+            speech.destroy();
+            Log.i(LOG_TAG, "destroy");
         }
         super.onStop();
     }
